@@ -1,0 +1,84 @@
+#!/bin/bash
+
+clear
+ascii_art=' ▄██████▄    ▄▄▄▄███▄▄▄▄      ▄████████    ▄████████  ▄████████    ▄█    █▄    ▄██   ▄  
+███    ███ ▄██▀▀▀███▀▀▀██▄   ███    ███   ███    ███ ███    ███   ███    ███   ███   ██▄
+███    ███ ███   ███   ███   ███    ███   ███    ███ ███    █▀    ███    ███   ███▄▄▄███
+███    ███ ███   ███   ███   ███    ███  ▄███▄▄▄▄██▀ ███         ▄███▄▄▄▄███▄▄ ▀▀▀▀▀▀███
+███    ███ ███   ███   ███ ▀███████████ ▀▀███▀▀▀▀▀   ███        ▀▀███▀▀▀▀███▀  ▄██   ███
+███    ███ ███   ███   ███   ███    ███ ▀███████████ ███    █▄    ███    ███   ███   ███
+███    ███ ███   ███   ███   ███    ███   ███    ███ ███    ███   ███    ███   ███   ███
+ ▀██████▀   ▀█   ███   █▀    ███    █▀    ███    ███ ████████▀    ███    █▀     ▀█████▀ 
+                                          ███    ███                                    '
+
+echo -e "\n$ascii_art\n"
+
+# Setup network
+omarchy-network-setup
+
+# Prompt for user
+username=$(gum input --placeholder "Enter new username")
+password=$(gum input --password --placeholder "Enter password (will be used for user, root, and LUKS)")
+
+# Select disk (filter out zram, loop, etc.)
+disk=$(lsblk -dpno NAME,SIZE,TYPE | grep -E '/dev/(sd|hd|vd|nvme|mmcblk)' | awk '{print $1, $2}' | gum choose --header "Select install disk")
+
+if [[ -z "$disk" ]]; then
+  echo "No disk selected. Exiting."
+  exit 1
+fi
+
+# Detect fastest mirror region after network is up
+best_region=$(omarchy-mirror-finder)
+
+# Write archinstall JSON inline
+cat >omarchy-archinstall.json <<EOF
+{
+  "disk_config": {
+    "${disk%% *}": {
+      "partitions": {
+        "1": {
+          "mountpoint": "/boot",
+          "filesystem": "fat32",
+          "size": "512M",
+          "format": true,
+          "flags": ["boot", "esp"]
+        },
+        "2": {
+          "mountpoint": "/",
+          "filesystem": "ext4",
+          "size": "100%",
+          "format": true,
+          "encrypt": true,
+          "encryption-password": "${password}"
+        }
+      },
+      "wipe": true,
+      "bootloader": true
+    }
+  },
+  "user_accounts": {
+    "${username}": {
+      "password": "${password}",
+      "sudo": true,
+      "shell": "/bin/bash"
+    }
+  },
+  "root_password": "${password}",
+  "hostname": "archiso",
+  "mirror-region": "${best_region}",
+  "audio": "pipewire",
+  "network_configuration": {
+    "method": "auto"
+  }
+}
+EOF
+
+# Run archinstall and log to file
+archinstall --config omarchy-archinstall.json --silent | tee /root/archinstall.log
+
+# Now run the live omarchy installer
+arch-chroot /mnt sudo -u "$username" bash -c 'wget -qO- https://omarchy.org/install | bash'
+
+# Reboot after setup
+reboot

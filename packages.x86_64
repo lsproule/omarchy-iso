@@ -1,0 +1,11 @@
+base
+linux
+linux-firmware
+bash
+jq
+gum
+archinstall
+networkmanager
+iw
+bc
+wget

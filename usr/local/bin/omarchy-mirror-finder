@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# 🌍 Detect fastest mirror region after network is up
+declare -A regions=(
+  [United_States]="mirrors.kernel.org"
+  [Germany]="mirror.f4st.host"
+  [Netherlands]="mirror.koddos.net"
+  [Japan]="ftp.jaist.ac.jp"
+  [Australia]="mirror.aarnet.edu.au"
+  [Brazil]="archlinux.c3sl.ufpr.br"
+)
+
+echo "Detecting fastest Arch mirror region..."
+best_region=""
+best_ping=99999
+
+for region in "${!regions[@]}"; do
+  host="${regions[$region]}"
+  ping_time=$(ping -c1 -w1 "$host" | grep 'time=' | sed -E 's/.*time=([0-9.]+).*/\1/')
+  if [[ -n "$ping_time" && $(echo "$ping_time < $best_ping" | bc) -eq 1 ]]; then
+    best_ping="$ping_time"
+    best_region="$region"
+  fi
+done
+
+echo "Selected mirror region: ${best_region//_/ }"
+echo "${best_region//_/ }"
