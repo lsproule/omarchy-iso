@@ -32,7 +32,7 @@ fi
 best_region=$(omarchy-mirror-finder)
 
 # Detect timezone
-timezone=$(curl -s ipinfo.io/timezone 2>/dev/null || echo "UTC")
+timezone=$(wget -qO- ipinfo.io/timezone 2>/dev/null || echo "UTC")
 
 # Write archinstall JSON inline
 cat >omarchy-archinstall.json <<EOF
