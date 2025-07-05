@@ -13,8 +13,10 @@ ascii_art=' ▄██████▄    ▄▄▄▄███▄▄▄▄      �
 
 echo -e "\n$ascii_art\n"
 
+INSTALLER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Setup network
-omarchy-network-setup
+. "$INSTALLER_DIR/omarchy-network-setup"
 
 # Prompt for user
 username=$(gum input --placeholder "Enter new username")
@@ -29,10 +31,12 @@ if [[ -z "$disk" ]]; then
 fi
 
 # Detect fastest mirror region after network is up
-best_region=$(omarchy-mirror-finder)
+best_region=$(gum spin --title "Detecting fastest Arch mirror region..." -- "$INSTALLER_DIR/omarchy-mirror-finder")
+echo "Using mirror region: $best_region"
 
 # Detect timezone
-timezone=$(wget -qO- ipinfo.io/timezone 2>/dev/null || echo "UTC")
+timezone=$(gum spin --title "Detecting timezone..." -- bash -c 'wget -qO- ipinfo.io/timezone 2>/dev/null || echo "UTC"')
+echo "Using timezone: $timezone"
 
 # Write archinstall JSON inline
 cat >omarchy-archinstall.json <<EOF
@@ -78,11 +82,15 @@ cat >omarchy-archinstall.json <<EOF
 }
 EOF
 
-# Run archinstall and log to file
-archinstall --config omarchy-archinstall.json --silent | tee /root/archinstall.log
+if [[ "$1" == "dry" ]]; then
+  cat omarchy-archinstall.json
+else
+  # Run archinstall and log to file
+  archinstall --config omarchy-archinstall.json --silent | tee /root/archinstall.log
 
-# Now run the live omarchy installer
-arch-chroot /mnt sudo -u "$username" bash -c 'wget -qO- https://omarchy.org/install | bash'
+  # Now run the live omarchy installer
+  arch-chroot /mnt sudo -u "$username" bash -c 'wget -qO- https://omarchy.org/install | bash'
 
-# Reboot after setup
-reboot
+  # Reboot after setup
+  reboot
+fi

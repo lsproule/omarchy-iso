@@ -10,7 +10,6 @@ declare -A regions=(
   [Brazil]="archlinux.c3sl.ufpr.br"
 )
 
-echo "Detecting fastest Arch mirror region..."
 best_region=""
 best_ping=99999
 
@@ -23,5 +22,5 @@ for region in "${!regions[@]}"; do
   fi
 done
 
-echo "Selected mirror region: ${best_region//_/ }"
 echo "${best_region//_/ }"
+
