@@ -3,6 +3,7 @@ linux
 linux-firmware
 amd-ucode
 intel-ucode
+syslinux
 bash
 jq
 gum
