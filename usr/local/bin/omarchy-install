@@ -31,6 +31,9 @@ fi
 # Detect fastest mirror region after network is up
 best_region=$(omarchy-mirror-finder)
 
+# Detect timezone
+timezone=$(curl -s ipinfo.io/timezone 2>/dev/null || echo "UTC")
+
 # Write archinstall JSON inline
 cat >omarchy-archinstall.json <<EOF
 {
@@ -67,6 +70,7 @@ cat >omarchy-archinstall.json <<EOF
   "root_password": "${password}",
   "hostname": "archiso",
   "mirror-region": "${best_region}",
+  "timezone": "${timezone}",
   "audio": "pipewire",
   "network_configuration": {
     "method": "auto"
