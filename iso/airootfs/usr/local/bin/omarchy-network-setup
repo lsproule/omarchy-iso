@@ -1,38 +1,39 @@
 #!/bin/bash
 
-if ip link show | grep -q 'state UP' && ping -c1 archlinux.org &>/dev/null; then
-  echo -e "Ethernet connection detected and working.\n"
+# if ip link show | grep -q 'state UP' && ping -c1 archlinux.org &>/dev/null; then
+#   echo -e "Ethernet connection detected and working.\n"
+# else
+echo "Detecting Wi-Fi networks..."
+wifi_interfaces=$(iw dev | awk '$1=="Interface" {print $2}')
+wifi_count=$(echo "$wifi_interfaces" | wc -l)
+
+if [[ $wifi_count -eq 1 ]]; then
+  wifi_iface="$wifi_interfaces"
 else
-  echo -e "No working Ethernet. Setting up Wi-Fi...\n"
-
-  wifi_iface=$(iw dev | awk '$1=="Interface"{print $2}' | grep -m1 wlan0)
-
-  if [[ -z "$wifi_iface" ]]; then
-    wifi_iface=$(iw dev | awk '$1=="Interface"{print $2}' | gum choose --header "Select Wi-Fi interface")
-  fi
-
-  if [[ -z "$wifi_iface" ]]; then
-    echo "No Wi-Fi interface selected. Exiting."
-    exit 1
-  fi
-
-  # List available networks
-  networks=$(nmcli -t -f SSID dev wifi list ifname "$wifi_iface" | grep -v '^$' | sort | uniq)
-  ssid=$(echo "$networks" | gum choose --header "Select Wi-Fi network")
-
-  if [[ -z "$ssid" ]]; then
-    echo "No Wi-Fi network selected. Exiting."
-    exit 1
-  fi
-
-  wifi_pass=$(gum input --password --placeholder "Enter Wi-Fi password for $ssid")
-  nmcli dev wifi connect "$ssid" password "$wifi_pass" ifname "$wifi_iface"
-
-  if ! ping -c1 archlinux.org &>/dev/null; then
-    echo "Wi-Fi connection failed. Exiting."
-    exit 1
-  fi
-
-  echo -e "Wi-Fi connection established.\n"
+  wifi_iface=$(echo "$wifi_interfaces" | gum choose --header "Select Wi-Fi interface")
 fi
 
+if [[ -z "$wifi_iface" ]]; then
+  echo "No Wi-Fi interface selected. Exiting."
+  exit 1
+fi
+
+# List available networks
+networks=$(nmcli -t -f SSID dev wifi list ifname "$wifi_iface" | grep -v '^$' | sort | uniq)
+ssid=$(echo "$networks" | gum choose --header "Select Wi-Fi network")
+
+if [[ -z "$ssid" ]]; then
+  echo "No Wi-Fi network selected. Exiting."
+  exit 1
+fi
+
+wifi_pass=$(gum input --password --placeholder "Enter Wi-Fi password for $ssid")
+nmcli dev wifi connect "$ssid" password "$wifi_pass" ifname "$wifi_iface"
+
+if ! ping -c1 archlinux.org &>/dev/null; then
+  echo "Wi-Fi connection failed. Exiting."
+  exit 1
+fi
+
+echo -e "Wi-Fi connection established.\n"
+# fi

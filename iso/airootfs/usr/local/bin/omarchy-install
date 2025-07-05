@@ -16,7 +16,7 @@ echo -e "\n$ascii_art\n"
 INSTALLER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Setup network
-. "$INSTALLER_DIR/omarchy-network-setup"
+source "$INSTALLER_DIR/omarchy-network-setup"
 
 # Prompt for user
 username=$(gum input --placeholder "Enter new username")
