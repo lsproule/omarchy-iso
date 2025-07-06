@@ -39,47 +39,153 @@ timezone=$(gum spin --title "Detecting timezone..." -- bash -c 'wget -qO- ipinfo
 echo "Using timezone: $timezone"
 
 # Write archinstall JSON inline
-cat >omarchy-archinstall.json <<EOF
+cat >omarchy_configuration.json <<EOF
 {
-  "config_type": "disk_layout",
-  "disk_config": {
-    "${disk%% *}": {
-      "partitions": {
-        "1": {
-          "mountpoint": "/boot",
-          "filesystem": "fat32",
-          "size": "512M",
-          "format": true,
-          "flags": ["boot", "esp"]
+    "archinstall-language": "English",
+    "audio_config": {
+        "audio": "pipewire"
+    },
+    "bootloader": "Grub",
+    "custom_commands": [],
+    "disk_config": {
+        "btrfs_options": {
+            "snapshot_config": null
         },
-        "2": {
-          "mountpoint": "/",
-          "filesystem": "ext4",
-          "size": "100%",
-          "format": true,
-          "encrypt": true,
-          "encryption-password": "${password}"
+        "config_type": "default_layout",
+        "device_modifications": [
+            {
+                "device": "${disk%% *}",
+                "partitions": [
+                    {
+                        "btrfs": [],
+                        "dev_path": null,
+                        "flags": [
+                            "boot"
+                        ],
+                        "fs_type": "fat32",
+                        "mount_options": [],
+                        "mountpoint": "/boot",
+                        "obj_id": "8c4d24dc-e27c-42bd-8e22-e70c9f8a5910",
+                        "size": {
+                            "sector_size": {
+                                "unit": "B",
+                                "value": 512
+                            },
+                            "unit": "GiB",
+                            "value": 1
+                        },
+                        "start": {
+                            "sector_size": {
+                                "unit": "B",
+                                "value": 512
+                            },
+                            "unit": "MiB",
+                            "value": 1
+                        },
+                        "status": "create",
+                        "type": "primary"
+                    },
+                    {
+                        "btrfs": [
+                            {
+                                "mountpoint": "/",
+                                "name": "@"
+                            },
+                            {
+                                "mountpoint": "/home",
+                                "name": "@home"
+                            },
+                            {
+                                "mountpoint": "/var/log",
+                                "name": "@log"
+                            },
+                            {
+                                "mountpoint": "/var/cache/pacman/pkg",
+                                "name": "@pkg"
+                            }
+                        ],
+                        "dev_path": null,
+                        "flags": [],
+                        "fs_type": "btrfs",
+                        "mount_options": [
+                            "compress=zstd"
+                        ],
+                        "mountpoint": null,
+                        "obj_id": "a7b3df75-f3ff-4ba2-a158-7084bf224c38",
+                        "size": {
+                            "sector_size": {
+                                "unit": "B",
+                                "value": 512
+                            },
+                            "unit": "B",
+                            "value": 33284947968
+                        },
+                        "start": {
+                            "sector_size": {
+                                "unit": "B",
+                                "value": 512
+                            },
+                            "unit": "B",
+                            "value": 1074790400
+                        },
+                        "status": "create",
+                        "type": "primary"
+                    }
+                ],
+                "wipe": true
+            }
+        ],
+        "disk_encryption": {
+            "encryption_type": "luks",
+            "lvm_volumes": [],
+            "partitions": [
+                "a7b3df75-f3ff-4ba2-a158-7084bf224c38"
+            ]
         }
-      },
-      "wipe": true,
-      "bootloader": true
-    }
-  },
-  "user_accounts": {
-    "${username}": {
-      "password": "${password}",
-      "sudo": true,
-      "shell": "/bin/bash"
-    }
-  },
-  "root_password": "${password}",
-  "hostname": "archiso",
-  "mirror-region": "${best_region}",
-  "timezone": "${timezone}",
-  "audio": "pipewire",
-  "network_configuration": {
-    "method": "auto"
-  }
+    },
+    "hostname": "archlinux",
+    "kernels": [
+        "linux"
+    ],
+    "locale_config": {
+        "kb_layout": "us",
+        "sys_enc": "UTF-8",
+        "sys_lang": "en_US.UTF-8"
+    },
+    "mirror_config": {
+        "custom_repositories": [],
+        "custom_servers": [],
+        "mirror_regions": {
+            "$best_region": [ ]
+        },
+        "optional_repositories": []
+    },
+    "network_config": {
+        "type": "iso"
+    },
+    "ntp": true,
+    "packages": [],
+    "parallel_downloads": 0,
+    "services": [],
+    "swap": true,
+    "timezone": "$timezone",
+    "version": null
+}
+EOF
+
+enc_password=$(echo "$password" | mkpasswd --method=YESCRYPT -s)
+cat >omarchy_credentials.json <<EOF
+{
+    "encryption_password": "$password",
+    "root_enc_password": "$enc_password",
+    "users": [
+        {
+            "enc_password": "$enc_password",
+            "groups": [],
+            "sudo": true,
+            "username": "$username"
+        }
+    ]
 }
 EOF
 
@@ -87,7 +193,7 @@ if [[ "$1" == "dry" ]]; then
   cat omarchy-archinstall.json
 else
   # Run archinstall and log to file
-  archinstall --config omarchy-archinstall.json --silent | tee /root/archinstall.log
+  archinstall --config omarchy_configuration.json --creds omarchy_credentials.json --silent | tee /root/archinstall.log
 
   # Now run the live omarchy installer
   arch-chroot /mnt sudo -u "$username" bash -c 'wget -qO- https://omarchy.org/install | bash'
