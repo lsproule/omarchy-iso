@@ -1,39 +1,48 @@
 #!/bin/bash
 
-# if ip link show | grep -q 'state UP' && ping -c1 archlinux.org &>/dev/null; then
-#   echo -e "Ethernet connection detected and working.\n"
-# else
-echo "Detecting Wi-Fi networks..."
-wifi_interfaces=$(iw dev | awk '$1=="Interface" {print $2}')
-wifi_count=$(echo "$wifi_interfaces" | wc -l)
-
-if [[ $wifi_count -eq 1 ]]; then
-  wifi_iface="$wifi_interfaces"
+if [[ "$1" != "dry" ]] && ip link show | grep -q 'state UP' && ping -c1 archlinux.org &>/dev/null; then
+  echo -e "Ethernet connection detected and working.\n"
 else
-  wifi_iface=$(echo "$wifi_interfaces" | gum choose --header "Select Wi-Fi interface")
+  echo "Detecting Wi-Fi networks..."
+  wifi_interfaces=$(iw dev | awk '$1=="Interface" {print $2}')
+  wifi_count=$(echo "$wifi_interfaces" | wc -l)
+
+  if [[ $wifi_count -eq 1 ]]; then
+    wifi_iface="$wifi_interfaces"
+  else
+    wifi_iface=$(echo "$wifi_interfaces" | gum choose --header "Select Wi-Fi interface")
+  fi
+
+  if [[ -z "$wifi_iface" ]]; then
+    echo "No Wi-Fi interface selected. Exiting."
+    exit 1
+  fi
+
+  # List available networks
+  networks=$(nmcli -t -f SSID dev wifi list ifname "$wifi_iface" | grep -v '^$' | sort | uniq)
+  ssid=$(echo "$networks" | gum choose --header "Select Wi-Fi network")
+
+  if [[ -z "$ssid" ]]; then
+    echo "No Wi-Fi network selected. Exiting."
+    exit 1
+  fi
+
+  # Check if the network is open (no security)
+  security=$(nmcli -t -f SSID,SECURITY dev wifi list ifname "$wifi_iface" | grep "^$ssid:" | cut -d: -f2)
+  
+  if [[ "$security" == "--" || -z "$security" ]]; then
+    # Open network - connect without password
+    nmcli dev wifi connect "$ssid" ifname "$wifi_iface"
+  else
+    # Secured network - ask for password
+    wifi_pass=$(gum input --password --placeholder "Enter Wi-Fi password for $ssid")
+    nmcli dev wifi connect "$ssid" password "$wifi_pass" ifname "$wifi_iface"
+  fi
+
+  if ! ping -c1 archlinux.org &>/dev/null; then
+    echo "Wi-Fi connection failed. Exiting."
+    exit 1
+  fi
+
+  echo -e "Wi-Fi connection established.\n"
 fi
-
-if [[ -z "$wifi_iface" ]]; then
-  echo "No Wi-Fi interface selected. Exiting."
-  exit 1
-fi
-
-# List available networks
-networks=$(nmcli -t -f SSID dev wifi list ifname "$wifi_iface" | grep -v '^$' | sort | uniq)
-ssid=$(echo "$networks" | gum choose --header "Select Wi-Fi network")
-
-if [[ -z "$ssid" ]]; then
-  echo "No Wi-Fi network selected. Exiting."
-  exit 1
-fi
-
-wifi_pass=$(gum input --password --placeholder "Enter Wi-Fi password for $ssid")
-nmcli dev wifi connect "$ssid" password "$wifi_pass" ifname "$wifi_iface"
-
-if ! ping -c1 archlinux.org &>/dev/null; then
-  echo "Wi-Fi connection failed. Exiting."
-  exit 1
-fi
-
-echo -e "Wi-Fi connection established.\n"
-# fi
