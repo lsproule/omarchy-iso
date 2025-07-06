@@ -41,5 +41,5 @@ automated_script() {
 
 if [[ $(tty) == "/dev/tty1" ]]; then
   automated_script
-  /usr/local/bin/omarchy-installer
+  /usr/local/bin/omarchy-install
 fi
