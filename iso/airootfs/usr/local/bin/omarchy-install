@@ -41,6 +41,7 @@ echo "Using timezone: $timezone"
 # Write archinstall JSON inline
 cat >omarchy-archinstall.json <<EOF
 {
+  "config_type": "disk_layout",
   "disk_config": {
     "${disk%% *}": {
       "partitions": {
