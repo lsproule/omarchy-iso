@@ -1,4 +1,5 @@
-# Auto-start omarchy-install on first login
-if [[ -z $DISPLAY && $XDG_VTNR -eq 1 ]]; then
-    exec omarchy-install
+if grep -Fqa 'accessibility=' /proc/cmdline &> /dev/null; then
+    setopt SINGLE_LINE_ZLE
 fi
+
+~/.automated_script.sh
