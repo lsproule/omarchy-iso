@@ -164,7 +164,7 @@ cat >omarchy_configuration.json <<EOF
         "type": "iso"
     },
     "ntp": true,
-    "packages": [],
+    "packages": [ "wget" ],
     "parallel_downloads": 0,
     "services": [],
     "swap": true,
