@@ -195,8 +195,18 @@ else
   # Run archinstall and log to file
   archinstall --config omarchy_configuration.json --creds omarchy_credentials.json --silent | tee /root/archinstall.log
 
+  if [[ $? -ne 0 ]]; then
+    echo "Archinstall failed. Check /root/archinstall.log for details."
+    exit 1
+  fi
+
   # Now run the live omarchy installer
   arch-chroot /mnt sudo -u "$username" bash -c 'wget -qO- https://omarchy.org/install | bash'
+
+  if [[ $? -ne 0 ]]; then
+    echo "Omarchy installation failed. Check the output above for details."
+    exit 1
+  fi
 
   # Reboot after setup
   reboot
