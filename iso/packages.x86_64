@@ -94,6 +94,9 @@ qemu-guest-agent
 refind
 reflector
 rsync
+ruby
+ruby-bundler
+ruby-irb
 rxvt-unicode-terminfo
 screen
 sdparm
