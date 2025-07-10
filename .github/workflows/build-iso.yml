@@ -16,8 +16,6 @@ jobs:
         uses: actions/checkout@v4
       - name: build iso 
         run: |
-          pwd
-          ls
           pacman -Syu --noconfirm archiso grub git
           bash ./build.sh
       - name: upload isos 
