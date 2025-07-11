@@ -37,7 +37,7 @@ fi
 disk_bytes=$(lsblk -bnd -o SIZE "${DISK%% *}")
 disk_mib=$((disk_bytes / 1024 / 1024))
 root_mib=$((disk_mib - BOOT_SIZE_MIB))
-ROOT_BYTES=$((root_mib * 1024 * 1024))
+ROOT_BYTES=$(($((root_mib - 1024)) * 1024 * 1024))
 ROOT_START=$(( (BOOT_SIZE_MIB + 1) * 1024 * 1024 ))
 
 
