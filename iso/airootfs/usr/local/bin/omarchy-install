@@ -27,30 +27,30 @@ username=$(gum input --placeholder "Enter new username")
 password=$(gum input --password --placeholder "Enter password (will be used for user, root, and LUKS)")
 
 # Select disk (filter out zram, loop, etc.)
-disk=$(lsblk -dpno NAME,SIZE,TYPE | grep -E '/dev/(sd|hd|vd|nvme|mmcblk)' | awk '{print $1, $2}' | gum choose --header "Select install disk")
+DISK=$(lsblk -dpno NAME,SIZE,TYPE | grep -E '/dev/(sd|hd|vd|nvme|mmcblk)' | awk '{print $1, $2}' | gum choose --header "Select install disk")
 
-if [[ -z "$disk" ]]; then
+if [[ -z "$DISK" ]]; then
   echo "No disk selected. Exiting."
   exit 1
 fi
 
-disk_bytes=$(lsblk -bnd -o SIZE "${disk%% *}")
+disk_bytes=$(lsblk -bnd -o SIZE "${DISK%% *}")
 disk_mib=$((disk_bytes / 1024 / 1024))
 root_mib=$((disk_mib - BOOT_SIZE_MIB))
-root_bytes=$((root_mib * 1024 * 1024))
-root_start=$(( (BOOT_SIZE_MIB + 1) * 1024 * 1024 ))
+ROOT_BYTES=$((root_mib * 1024 * 1024))
+ROOT_START=$(( (BOOT_SIZE_MIB + 1) * 1024 * 1024 ))
 
 
 # Detect fastest mirror region after network is up
-best_region=$(gum spin --title "Detecting fastest Arch mirror region..." -- "$INSTALLER_DIR/omarchy-mirror-finder")
-echo "Using mirror region: $best_region"
+BEST_REGION=$(gum spin --title "Detecting fastest Arch mirror region..." -- "$INSTALLER_DIR/omarchy-mirror-finder")
+echo "Using mirror region: $BEST_REGION"
 
 
 
 
 # Detect timezone
-timezone=$(gum spin --title "Detecting timezone..." -- bash -c 'wget -qO- ipinfo.io/timezone 2>/dev/null || echo "UTC"')
-echo "Using timezone: $timezone"
+TZ_DETECT=$(gum spin --title "Detecting timezone..." -- bash -c 'wget -qO- ipinfo.io/timezone 2>/dev/null || echo "UTC"')
+echo "Using timezone: $TZ_DETECT"
 
 # Write archinstall JSON inline
 cat >omarchy_configuration.json <<EOF
@@ -68,7 +68,7 @@ cat >omarchy_configuration.json <<EOF
         "config_type": "default_layout",
         "device_modifications": [
             {
-                "device": "${disk%% *}",
+                "device": "${DISK%% *}",
                 "partitions": [
                     {
                         "btrfs": [],
@@ -83,15 +83,15 @@ cat >omarchy_configuration.json <<EOF
                         "size": {
                             "sector_size": {
                                 "unit": "B",
-                                "value": 512
+                                "value": $SECTOR_BYTES
                             },
-                            "unit": "GiB",
-                            "value": 1
+                            "unit": "MiB",
+                            "value": $BOOT_SIZE_MIB
                         },
                         "start": {
                             "sector_size": {
                                 "unit": "B",
-                                "value": 512
+                                "value": $SECTOR_BYTES
                             },
                             "unit": "MiB",
                             "value": 1
@@ -129,18 +129,18 @@ cat >omarchy_configuration.json <<EOF
                         "size": {
                             "sector_size": {
                                 "unit": "B",
-                                "value": 512
+                                "value": $SECTOR_BYTES
                             },
                             "unit": "B",
-                            "value": 33284947968
+                            "value": $ROOT_BYTES 
                         },
                         "start": {
                             "sector_size": {
                                 "unit": "B",
-                                "value": 512
+                                "value": $SECTOR_BYTES
                             },
                             "unit": "B",
-                            "value": 1074790400
+                            "value": $ROOT_START
                         },
                         "status": "create",
                         "type": "primary"
@@ -170,7 +170,7 @@ cat >omarchy_configuration.json <<EOF
         "custom_repositories": [],
         "custom_servers": [],
         "mirror_regions": {
-            "$best_region": [ ]
+            "$BEST_REGION": [ ]
         },
         "optional_repositories": []
     },
@@ -182,7 +182,7 @@ cat >omarchy_configuration.json <<EOF
     "parallel_downloads": 0,
     "services": [],
     "swap": true,
-    "timezone": "$timezone",
+    "timezone": "$TZ_DETECT",
     "version": null
 }
 EOF
