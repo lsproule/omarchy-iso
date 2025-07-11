@@ -14,6 +14,10 @@ ascii_art=' ▄██████▄    ▄▄▄▄███▄▄▄▄      �
 echo -e "\n$ascii_art\n"
 
 INSTALLER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BOOT_SIZE_MIB=513
+SECTOR_BYTES=512
+
+
 
 # Setup network
 source "$INSTALLER_DIR/omarchy-network-setup"
@@ -30,9 +34,19 @@ if [[ -z "$disk" ]]; then
   exit 1
 fi
 
+disk_bytes=$(lsblk -bnd -o SIZE "${disk%% *}")
+disk_mib=$((disk_bytes / 1024 / 1024))
+root_mib=$((disk_mib - BOOT_SIZE_MIB))
+root_bytes=$((root_mib * 1024 * 1024))
+root_start=$(( (BOOT_SIZE_MIB + 1) * 1024 * 1024 ))
+
+
 # Detect fastest mirror region after network is up
 best_region=$(gum spin --title "Detecting fastest Arch mirror region..." -- "$INSTALLER_DIR/omarchy-mirror-finder")
 echo "Using mirror region: $best_region"
+
+
+
 
 # Detect timezone
 timezone=$(gum spin --title "Detecting timezone..." -- bash -c 'wget -qO- ipinfo.io/timezone 2>/dev/null || echo "UTC"')
